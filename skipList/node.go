@@ -4,8 +4,6 @@ import (
 	"sync/atomic"
 )
 
-const maxHeight = 1024
-
 type Node struct {
 	value     uint64
 	keyOffset uint32
@@ -56,4 +54,8 @@ update pointer next use cas
 */
 func (n *Node) casNextOffset(h int, old, new uint32) bool {
 	return atomic.CompareAndSwapUint32(&n.tower[h], old, new)
+}
+
+func newNode(arena Arena, key []byte, v ValueStruct, height int) {
+	nodeOffset := 
 }

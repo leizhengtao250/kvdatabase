@@ -3,7 +3,13 @@ package skiplist
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"sync/atomic"
+)
+
+const (
+	heightIncrease = math.MaxUint32 / 3
+	maxHeight      = 20
 )
 
 type skipList struct {
@@ -26,7 +32,7 @@ func (s *skipList) findSpliceForLevel(key []byte, before uint32, level int) (uin
 		}
 		nextKey := nextNode.key(s.arena)
 		cmp := CompareKeys(beforeNode.key(s.arena), nextNode.key(s.arena))
-
+		fmt.Println(nextKey, cmp)
 	}
 
 }
@@ -119,27 +125,55 @@ func (s *skipList) getNext(n *Node, height int) *Node {
 
 }
 
-func (s *skipList) Add(e *Entry) {
-	key, v := e.key, ValueStruct{}
-	listHeight := s.getHeight()
-
-	var prev [maxHeight + 1]uint32
-	var next [maxHeight + 1]uint32
-	prev[listHeight] = s.headOffset             //最高层
-	for i := int(listHeight) - 1; i >= 0; i-- { //开始从最高层往下层遍历
-		prev[i], next[i] = s.findSpliceForLevel(key, prev[i+1], i)//找到第i层插入的位置
-		if prev[i]==next[i]{
-			v:=
-		}
-
-	}
-
-}
-
 func (s *skipList) getHeight() int32 {
 	return atomic.LoadInt32(&s.height)
 }
 
-func (s *skipList) Get() {
+/**
+	heightIncress = max的uint32/2
+	那么FastRand()会随机的选择 uint32的值，那么就有50%的几率FastRand() <= heightIncrease
+	因此每执行一次randomHeight() 几率为50%
+	那么h=1  ->50%
+	   h=2   ->25%
+	   h=3   ->12.5%
+       h=4   ->.....
+**/
+func (s *skipList) randomHeight() int {
+	h := 1
+	for h < maxHeight && FastRand() <= heightIncrease {
+		h++
+	}
+	return h
+}
 
+func (s *skipList) Add(e *Entry) {
+	key, v := e.key, ValueStruct{}
+	listHeight := s.getHeight()
+
+	var prev [maxHeight + 1]uint32              //0-maxHeight
+	var next [maxHeight + 1]uint32              //0-maxHeight
+	prev[listHeight] = s.headOffset             //最高层
+	for i := int(listHeight) - 1; i >= 0; i-- { //开始从最高层往下层遍历
+		prev[i], next[i] = s.findSpliceForLevel(key, prev[i+1], i) //找到第i层插入的位置
+		if prev[i] == next[i] {
+			offsetV := s.arena.PutVal(v)                   //value的offset，同时也存储在arena上
+			vs := s.encodedValue(offsetV, v.EncodedSize()) //skipList中节点上存的value值
+			preNode := s.arena.GetNode(prev[i])
+			preNode.setValue(&s.arena, vs)
+			return
+		}
+
+	}
+	height := s.randomHeight()
+
+}
+
+/**
+	skipList中value和arena中的value有区别
+	1.skipList中value为32位offset，32位的size
+	2.根据32位offset和32位的size，再去arena中寻找真正的value值
+**/
+
+func (s *skipList) encodedValue(offset, size uint32) uint64 {
+	return uint64(size)<<32 | uint64(offset) //小端存储
 }
