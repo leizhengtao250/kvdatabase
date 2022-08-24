@@ -19,7 +19,7 @@ func (v *ValueStruct) EncodedSize() uint32 {
 }
 
 /**
-	TODO 为什么向右偏移7个单位
+	为什么向右偏移7个单位
 	因为涉及到Varint编码 每个字节只有7位是有效位，所以就是移动7位作为一个字节
 	在还原过期时间时还要做处理
 
@@ -35,9 +35,21 @@ func sizeVarint(x uint64) (n int) {
 	return n
 }
 
+/**
+
+把value值导入到ValueStruct
+*/
 func (v *ValueStruct) EncodedValue(b []byte) uint32 {
 	b[0] = v.Meta
 	sz := binary.PutUvarint(b[1:], v.ExpiresAt)
 	n := copy(b[1+sz:], v.Value)
 	return uint32(1 + sz + n)
+}
+
+func (v *ValueStruct) DecodeValue(b []byte) {
+	v.Meta = b[0]
+	var sz int
+	//读取了sz位的值
+	v.ExpiresAt, sz = binary.Uvarint(b[1:])
+	v.Value = b[1+sz:]
 }

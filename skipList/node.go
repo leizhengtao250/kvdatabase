@@ -51,11 +51,21 @@ func (n *Node) getNextOffset(h int) uint32 {
 
 /**
 update pointer next use cas
+将当前节点node的next指针更新
 */
 func (n *Node) casNextOffset(h int, old, new uint32) bool {
 	return atomic.CompareAndSwapUint32(&n.tower[h], old, new)
 }
 
-func newNode(arena Arena, key []byte, v ValueStruct, height int) {
-	nodeOffset := 
+func newNode(arena Arena, key []byte, v ValueStruct, height int) *Node {
+	nodeOffset := arena.PutNode(height)
+	keyOffset := arena.PutKey(key)
+	val := encodedValue(arena.PutVal(v), v.EncodedSize())
+	node := arena.GetNode(nodeOffset)
+	node.keyOffset = keyOffset
+	node.keySize = uint16(len(key))
+	node.height = height
+	node.value = val
+	return node
+
 }
