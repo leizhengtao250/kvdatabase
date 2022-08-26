@@ -18,6 +18,7 @@ func BitsPerkey(numEntries int, fp float64) int {
 /**
 根据公式计算hash函数的数量=0.7*(m/n)
 */
+
 func CalcHashNum(bitPerkey int) (k uint32) {
 	k = uint32(0.69 * float64(bitPerkey))
 	if k < 1 {
@@ -86,5 +87,51 @@ func appendFilter(buf []byte, keys []uint32, bitsPerkey int) []byte {
 		}
 	}
 	return filter
+}
+
+type Filter []byte
+type BloomFilter struct {
+	bitmap Filter
+	k      uint8 //hash 函数个数
+}
+
+//将经过hash计算之后的值插入到位图中
+
+func (f *BloomFilter) Insert(h uint32) bool {
+	k := f.k
+	if k > 30 {
+		return true
+	}
+	nBits := uint32(8 * (f.Len() - 1))
+	delta := h>>17 | h<<15 //打乱hash值
+	for j := uint8(0); j < k; j++ {
+		bitPos := h % nBits
+		f.bitmap[bitPos/8] |= 1 << (bitPos % 8)
+		h += delta
+	}
+	return true
+}
+
+/**
+返回 位图长度
+*/
+
+func (f *BloomFilter) Len() int32 {
+	return int32(len(f.bitmap))
+}
+
+func (f *BloomFilter) MayContainKey(k []byte) bool {
+
+}
+
+func (f *BloomFilter) MayContain(h uint32) bool {
+	if f.Len() < 2 {
+		return false
+	}
+	k := f.k
+	if k > 30 {
+		return true
+	}
+	nBits := uint32(8 * (f.Len() - 1))
 
 }

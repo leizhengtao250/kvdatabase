@@ -1,5 +1,10 @@
 package skiplist
 
+import (
+	"math/rand"
+	"time"
+)
+
 /**
 	用一个4bit 去作为缓存访问次数计数，最高15次
 	1byte=uint8
@@ -97,11 +102,11 @@ func next2Power(x int64) int64 {
 
 }
 
-const cmDepth = 4
+const cmDepth = 4 //4个hash函数
 
 type cmSketch struct {
 	rows [cmDepth]cmRow  //给缓存计数
-	seed [cmDepth]uint64 //hash函数有关
+	seed [cmDepth]uint64 //随机数的种子
 	mask uint64          //TODO
 }
 
@@ -115,5 +120,47 @@ func newCmSketch(numCounters int64) *cmSketch {
 	sketch := &cmSketch{
 		mask: uint64(numCounters - 1),
 	}
+	source := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := 0; i < cmDepth; i++ {
+		sketch.seed[i] = source.Uint64()
+		sketch.rows[i] = newCmRow(numCounters)
+	}
+	return sketch
+}
 
+func (c *cmSketch) Increment(hashed uint64) {
+	for i := range c.rows {
+		c.rows[i].increment((hashed ^ c.seed[i]) & c.mask)
+	}
+}
+
+/**
+找到当前最小的计数值
+*/
+
+func (c *cmSketch) Estimate(hashed uint64) int64 {
+	min := byte(255)
+	for i := range c.rows {
+		val := c.rows[i].get((hashed ^ c.seed[i]) & c.mask)
+		if val < min {
+			min = val
+		}
+	}
+	return int64(min)
+}
+
+//让所有计数器减半，保鲜机制
+
+func (c *cmSketch) Reset() {
+	for _, r := range c.rows {
+		r.reset()
+	}
+}
+
+//清空计数器
+
+func (c *cmSketch) Clear() {
+	for _, r := range c.rows {
+		r.clear()
+	}
 }

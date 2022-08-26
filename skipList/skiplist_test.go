@@ -7,7 +7,8 @@ import (
 
 func TestA(t *testing.T) {
 	//1100 1011
-	a := uint8(0xcb)
-	v := a << 4
-	fmt.Printf("%0x", v)
+	a := uint32(2)
+	v := a>>17 | a<<15
+	fmt.Println(v)
+
 }
