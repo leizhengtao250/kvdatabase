@@ -15,6 +15,37 @@ func BitsPerkey(numEntries int, fp float64) int {
 	return int(locs)
 }
 
+func newFilter(numEntries int, fp float64) *BloomFilter {
+	bitsPerkey := BitsPerkey(numEntries, fp)
+	return initFilter(numEntries, bitsPerkey)
+}
+
+func initFilter(numEntries int, bitPerkey int) *BloomFilter {
+	bf := &BloomFilter{}
+	if bitPerkey < 0 {
+		bitPerkey = 0
+	}
+	k := uint32(0.69 * float64(bitPerkey))
+	if k < 1 {
+		k = 1
+	}
+	if k > 30 {
+		k = 30
+	}
+	bf.k = uint8(k)
+	nBits := numEntries * int(bitPerkey)
+	if nBits < 64 {
+		nBits = 64
+	}
+	nBytes := (nBits + 7) / 8
+	nBits = nBytes * 8
+	filter := make([]byte, nBytes+1)
+
+	filter[nBytes] = uint8(k)
+	bf.bitmap = filter
+	return bf
+}
+
 /**
 根据公式计算hash函数的数量=0.7*(m/n)
 */
@@ -121,7 +152,7 @@ func (f *BloomFilter) Len() int32 {
 }
 
 func (f *BloomFilter) MayContainKey(k []byte) bool {
-
+	return f.MayContain(Hash(k))
 }
 
 func (f *BloomFilter) MayContain(h uint32) bool {
@@ -133,5 +164,65 @@ func (f *BloomFilter) MayContain(h uint32) bool {
 		return true
 	}
 	nBits := uint32(8 * (f.Len() - 1))
+	delta := h>>17 | h<<15
+	for j := uint8(0); j < k; j++ {
+		bitPos := h % nBits
+		if f.bitmap[bitPos/8]&(1<<(bitPos%8)) == 0 {
+			return false
+		}
+		h += delta
+	}
+	return true
+}
 
+/**
+如果h在bf里面就返回true
+不在bf里面就返回false并插入进去
+*/
+func (f *BloomFilter) Allow(h uint32) bool {
+	if f == nil {
+		return true
+	}
+	already := f.MayContain(h)
+	if !already {
+		f.Insert(h)
+	}
+	return already
+
+}
+
+func Hash(b []byte) uint32 {
+	const (
+		seed = 0xbc9f1d34
+		m    = 0xc6a4a793
+	)
+	h := uint32(seed) ^ uint32(len(b))*m
+	for ; len(b) >= 4; b = b[4:] {
+		h += uint32(b[0]) | uint32(b[1])<<8 | uint32(b[2])<<16 | uint32(b[3])<<24
+		h *= m
+		h ^= h >> 16
+	}
+	switch len(b) {
+	case 3:
+		h += uint32(b[2]) << 16
+		fallthrough
+	case 2:
+		h += uint32(b[1]) << 8
+		fallthrough
+	case 1:
+		h += uint32(b[0])
+		h *= m
+		h ^= h >> 24
+	}
+	return h
+
+}
+
+func (b *BloomFilter) reset() {
+	if b == nil {
+		return
+	}
+	for i := range b.bitmap {
+		b.bitmap[i] = 0
+	}
 }

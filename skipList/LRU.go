@@ -13,10 +13,11 @@ type windowLRU struct {
 	list *list.List
 }
 
+//存在缓存中的封装数据格式
 type storeItem struct {
-	stage    int
+	stage    int //标注是在主缓存还是备缓存区
 	key      uint64
-	conflict uint64
+	conflict uint64 //key如果出现冲突
 	value    interface{}
 }
 
@@ -28,20 +29,37 @@ func newWindowLRU(size int, data map[uint64]*list.Element) *windowLRU {
 	}
 }
 
+/**
+向windows中增加一个LRU数据
+没有满  返回false
+满了 	返回true
+
+*/
 func (lru *windowLRU) add(newitem storeItem) (eitem storeItem, evicted bool) {
-	if lru.list.Len() < lru.cap {
+	//如果这个数据已经存在于缓存中，那就更新这个数据，并掉到头部
+	if _, ok := lru.data[newitem.key]; ok {
+		v := lru.data[newitem.key]
+		v.Value = newitem
+		lru.list.MoveToFront(v)
+		return storeItem{}, false
+	}
+	if lru.cap > lru.list.Len() {
 		lru.data[newitem.key] = lru.list.PushFront(&newitem)
 		return storeItem{}, false
 	}
-	//如果缓存容量是满的
-	evictItem := lru.list.Back() //链表最后末尾的元素
-
-	item := evictItem.Value.(*storeItem) //将元素转化为需要的类型
-	//删除数据
+	//如果容量已满 而且 缓存中不存在newitem数据
+	evictItem := lru.list.Back()
+	item := evictItem.Value.(*storeItem)
+	//从list中删除
+	lru.list.Remove(evictItem)
+	//从map中删除末尾数据
 	delete(lru.data, item.key)
-	//这里对evictItem和*item赋值，避免向runtime再次申请空间
-	eitem, *item = *item, newitem
-	lru.data[item.key] = evictItem
-	lru.list.MoveToFront(evictItem)
-	return eitem, true
+	//向map添加newitem数据,并放到头部
+	lru.data[newitem.key] = lru.list.PushFront(&newitem)
+	eitem = *item
+	return eitem, true //返回被淘汰的数据
+}
+
+func (lru *windowLRU) get(v *list.Element) {
+	lru.list.MoveToFront(v)
 }

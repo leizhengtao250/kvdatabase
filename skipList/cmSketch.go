@@ -150,6 +150,7 @@ func (c *cmSketch) Estimate(hashed uint64) int64 {
 }
 
 //让所有计数器减半，保鲜机制
+//如果不减半，最后所有的次数都是15，新进来的数据都会被排除
 
 func (c *cmSketch) Reset() {
 	for _, r := range c.rows {
