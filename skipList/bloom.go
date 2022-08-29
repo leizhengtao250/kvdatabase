@@ -7,6 +7,7 @@ import "math"
 	其实就是允许出错的概率，给定一个不存在的值，但是经过hash运算仍在数组内的概率
 	返回的是 m/n
 **/
+
 func BitsPerkey(numEntries int, fp float64) int {
 	//首先根据公式计算位数组的位数
 	size := -1 * float64(numEntries) * math.Log(fp) / math.Pow(0.69314718056, 2)
