@@ -18,7 +18,8 @@ type storeItem struct {
 	stage    int //标注是在主缓存还是备缓存区
 	key      uint64
 	conflict uint64 //key如果出现冲突
-	value    interface{}
+
+	value interface{}
 }
 
 func newWindowLRU(size int, data map[uint64]*list.Element) *windowLRU {

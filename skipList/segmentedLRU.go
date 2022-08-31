@@ -11,8 +11,8 @@ const (
 先进入one，如果在one再被访问的时候，在进入two
 one 20%
 two 80%
-
 */
+
 type segmentedLRU struct {
 	data                     map[uint64]*list.Element
 	stageOneCap, stageTwoCap int
