@@ -2,7 +2,7 @@ package store
 
 import "sync"
 
-//sstableW
+//sstable
 
 type sstable struct {
 	lock   *sync.RWMutex
