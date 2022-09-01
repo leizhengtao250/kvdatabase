@@ -1,5 +1,5 @@
 syntax="proto3"; //version
-option go_package="./;hello"
+option go_package="./;hello";
 package proto;
 message Person{
     string name = 1;//不是赋值，只是作为一个唯一编号，并不是一定连续的

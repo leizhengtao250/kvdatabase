@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-// unsafe.Sizeof(x) 来确定一个变量占用的内存字节数
+// 1unsafe.Sizeof(x) 来确定一个变量占用的内存字节数
 const (
 	MaxNodeSize = int(unsafe.Sizeof(Node{}))
 	offsetSize  = int(unsafe.Sizeof(uint32(0)))

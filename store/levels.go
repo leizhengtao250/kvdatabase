@@ -22,3 +22,7 @@ levelHandle
 */
 type levelHandler struct {
 }
+
+func newLevelManager(opt *){
+
+}
