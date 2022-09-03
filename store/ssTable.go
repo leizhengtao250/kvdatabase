@@ -11,8 +11,9 @@ import (
 //sstable
 
 type SSTable struct {
-	lock       *sync.RWMutex
-	f          *dbfile.MmapFile
+	lock *sync.RWMutex
+	f    *dbfile.MmapFile
+	//为了加速查找数据，每个sst文件都会有最大key和最小key
 	maxKey     []byte
 	minKey     []byte
 	indexStart int
@@ -33,4 +34,9 @@ func OpenSStable(opt *dbfile.Options) *SSTable {
 		fid:  opt.FID,
 		lock: &sync.RWMutex{},
 	}
+}
+
+//Init初始化
+func (ss *SSTable)Init()error{
+	var ko *
 }

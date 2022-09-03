@@ -36,3 +36,17 @@ func location(deep int, fullPath bool) string {
 	}
 	return file + ":" + strconv.Itoa(line)
 }
+
+// CondPanic e
+func CondPanic(condition bool, err error) {
+	if condition {
+		Panic(err)
+	}
+}
+
+// Panic 如果err 不为nil 则panicc
+func Panic(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
