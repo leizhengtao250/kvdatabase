@@ -2,6 +2,7 @@ package skiplist
 
 import (
 	"container/list"
+	"kvdatabase/utils"
 	"unsafe"
 
 	xxhash "github.com/cespare/xxhash/v2"
@@ -10,7 +11,7 @@ import (
 type Cache struct {
 	lru       *windowLRU
 	slru      *segmentedLRU
-	door      *BloomFilter
+	door      *utils.BloomFilter
 	c         *cmSketch
 	t         int32 //总共的访问次数
 	threshold int32 //一个次数访问次数上限，达到就减半

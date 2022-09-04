@@ -1,9 +1,10 @@
-package skiplist
+package utils
 
 import "math"
 
 /**
 	指定 false positive ->fp
+	// 位数组大小m，元素个数为n
 	其实就是允许出错的概率，给定一个不存在的值，但是经过hash运算仍在数组内的概率
 	返回的是 m/n
 **/
@@ -16,9 +17,13 @@ func BitsPerkey(numEntries int, fp float64) int {
 	return int(locs)
 }
 
-func newFilter(numEntries int, fp float64) *BloomFilter {
+func NewFilter(numEntries int, fp float64) *BloomFilter {
 	bitsPerkey := BitsPerkey(numEntries, fp)
 	return initFilter(numEntries, bitsPerkey)
+}
+
+func NewFilter1(keys []uint32, bitsPerKey int) Filter {
+	return Filter(appendFilter1(keys, bitsPerKey))
 }
 
 func initFilter(numEntries int, bitPerkey int) *BloomFilter {
@@ -86,7 +91,7 @@ func appendFilter1(keys []uint32, bitPerkey int) []byte {
 	filter := make([]byte, nBits)
 	//key->hash->位图数组
 	for _, h := range keys {
-		delta := h>>17 | h<<15 //把key转化成32位
+		delta := h>>17 | h<<15 //增加hash的随机性
 		for j := uint32(0); j < k; j++ {
 			bitPos := h % uint32(nBits) //这个地方就属于hash函数
 			filter[bitPos] = 1

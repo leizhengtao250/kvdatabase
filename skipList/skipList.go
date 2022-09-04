@@ -3,6 +3,7 @@ package skiplist
 import (
 	"bytes"
 	"fmt"
+	"kvdatabase/utils"
 	"math"
 	"sync/atomic"
 )
@@ -294,11 +295,11 @@ func (s *skipList) Search(key []byte) ValueStruct {
 	*/
 	nextKey := s.arena.GetKey(n.keyOffset, n.keySize)
 	//比较key和nextkey
-	if !SameKey(key, nextKey) {
+	if !utils.SameKey(key, nextKey) {
 		return ValueStruct{}
 	}
 	valOffset, valSize := n.getValueOffset()
 	vs := s.arena.GetVal(valOffset, valSize)
-	vs.ExpiresAt = ParseTs(nextKey)
+	vs.ExpiresAt = utils.ParseTs(nextKey)
 	return vs
 }

@@ -1,7 +1,5 @@
 package store
 
-import "kvdatabase/proto"
-
 type table struct {
 	ss  *SSTable
 	lm  *levelManager
@@ -12,6 +10,6 @@ type table struct {
 func OpenTable(lm *levelManager, tableName string, builder *tableBuilder) *table {
 	sstSize := int(lm.opt.SSTableMaxSz)
 	if builder != nil {
-		sstSize = int(builder)
+		sstSize = int(builder.done())
 	}
 }
