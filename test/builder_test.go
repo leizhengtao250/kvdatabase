@@ -2,13 +2,22 @@ package test
 
 import (
 	"fmt"
+	"kvdatabase/dbfile"
+	"os"
 	"testing"
 )
 
 func TestBaseKey(t *testing.T) {
-	a := 1
-	c := a
-	fmt.Printf("%p\n", c)
+	a := "/Users/hello/project/golanguage/sst/test/a.txt"
+	f, _ := os.Open(a)
+	m := &dbfile.MmapFile{
+		Data: make([]byte, 4),
+		Fd:   f,
+	}
+	b := make([]byte, 4)
+	b = []byte("abcd")
+	dst, _ := m.Bytes(0, 4)
+	copy(dst, b)
 
 }
 

@@ -3,6 +3,7 @@ package dbfile
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -68,4 +69,13 @@ func SyncDir(dir string) error {
 		return errors.New(fmt.Sprintf("while closing %s,errors is %s", dir, err))
 	}
 	return nil
+}
+
+// Bytes returns data starting from offset off of size sz. If there's not enough data, it would
+// return nil slice and io.EOF.
+func (m *MmapFile) Bytes(off, sz int) ([]byte, error) {
+	if len(m.Data[off:]) < sz {
+		return nil, io.EOF
+	}
+	return m.Data[off : off+sz], nil
 }

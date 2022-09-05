@@ -1,6 +1,6 @@
 package dbfile
 
-type Options struct {
+type OptionsSST struct {
 	FID      uint64
 	FileName string //文件名称
 	Dir      string //文件目录

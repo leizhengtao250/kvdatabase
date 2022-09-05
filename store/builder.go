@@ -2,9 +2,12 @@ package store
 
 import (
 	"errors"
+	"fmt"
+	"kvdatabase/dbfile"
 	"kvdatabase/proto"
 	"kvdatabase/utils"
 	"math"
+	"os"
 	"unsafe"
 )
 
@@ -93,7 +96,7 @@ func (tb *tableBuilder) add(e *utils.Entry, isStale bool) {
 		diff:    uint16(len(diffKey)),
 	}
 	//end 将end这个数字保存在entryOffsets中 TODO 这个是为啥
-	//这个是用来计算block的长度的
+	//这个是用来记录block的长度的
 	tb.curBlock.entryOffsets = append(tb.curBlock.entryOffsets, uint32(tb.curBlock.end))
 	tb.append(h.encode())
 	tb.append(diffKey)
@@ -173,6 +176,10 @@ func (tb *tableBuilder) tryFinishBlock(e *utils.Entry) bool {
 	return tb.curBlock.estimateSz > int64(tb.opt.BlockSize)
 }
 
+/**
+block封存好之后的收尾工作
+返回的block的元信息
+*/
 func (tb *tableBuilder) done() buildData {
 	tb.finishBlock() //block都封存好了
 	if len(tb.blockList) == 0 {
@@ -295,4 +302,57 @@ func (tb *tableBuilder) calculateCheckSum(data []byte) []byte {
 	//计算其crc码
 	checkSum := utils.CalculateCheckSum(data)
 	return utils.U64TOBytes(checkSum)
+}
+
+/**
+sst flush 到磁盘上
+flush 受层管理器和sstable管制
+把某层的某个ssTable落盘
+
+*/
+
+func (tb *tableBuilder) flush(lm *levelManager, tableName string) (t *table, err error) {
+	bd := tb.done()
+	t = &table{
+		lm:  lm,
+		fid: utils.FID(tableName),
+	}
+	t.ss = OpenSStable(&dbfile.OptionsSST{
+		FileName: tableName,
+		Dir:      lm.opt.WorkDir,
+		Flag:     os.O_CREATE | os.O_RDWR,
+		MaxSz:    bd.size,
+	})
+	buf := make([]byte, bd.size)
+	//buf中有整个的sst
+	written := bd.copy(buf)
+	utils.CondPanic(written != len(buf), fmt.Errorf("tablebuilder flush written != len(buf)"))
+	/**
+	做mmap
+	内存中dst和底层mmap中的Data[]做关联
+	*/
+	dst, err := t.ss.Bytes(0, bd.size)
+	if err != nil {
+		return nil, err
+	}
+	copy(dst, buf)
+	return t, nil
+
+}
+
+func (bd *buildData) copy(dst []byte) int {
+	var written int
+	//把每个block中的data数据都copy到dst[]中
+	for _, bl := range bd.blockList {
+		written += copy(dst[written:], bl.data[:bl.end])
+	}
+	//把每个block中的index都copy到dst[]中
+	written += copy(dst[written:], bd.index)
+	//把每个block中的index长度都copy到dst[]中
+	written += copy(dst[written:], utils.U32TOBytes(uint32(len(bd.index))))
+	//把每个block中的data数据的checksum都copy到dst[]中
+	written += copy(dst[written:], bd.checksum)
+	//把每个block中的data数据的checksum长度都copy到dst[]中
+	written += copy(dst[written:], utils.U32TOBytes(uint32(len(bd.checksum))))
+	return written
 }
