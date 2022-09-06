@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "pd";
+
+message User{
+  string name = 1;
+  bool male = 2;
+}
+
